@@ -1,34 +1,56 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
-    private float h_input;
-    private float v_input;
-    private float bounds;
-    [SerializeField] private readonly float speed = 5.0f;
+    private float _hInput;
+    private float _vInput;
+    private float _bounds;
+    private GameManager _manager;
+    [SerializeField] private float speed = 5.0f;
+    [SerializeField] private string enemyTag = "Enemy";
+    [SerializeField] private string collectibleTag = "Collectible";
 
     private void Start()
     {
-        bounds = GameManager.Instance.bounds;
+        _manager = GameManager.Instance;
+        _bounds = _manager.bounds;
+    }
+    
+    private void Update()
+    {
+        if (_manager.gameOver) return;
+        
+        // Manager player movement bounds
+        if (transform.position.x > _bounds)
+            transform.position = new Vector3(_bounds,0, transform.position.z);
+        else if (transform.position.x < -_bounds)
+            transform.position = new Vector3(-_bounds, 0, transform.position.z);
+        else if (transform.position.z > _bounds)
+            transform.position = new Vector3(transform.position.x, 0, _bounds);
+        else if (transform.position.z < -_bounds)
+            transform.position = new Vector3(transform.position.x, 0, -_bounds);
+
+        _hInput = Input.GetAxis("Horizontal");
+        _vInput = Input.GetAxis("Vertical");
+
+        transform.Translate(new Vector3(_hInput, 0, _vInput) * (speed * Time.deltaTime));
     }
 
-    // Update is called once per frame
-    void Update()
+    private void OnCollisionEnter(Collision collision)
     {
-        if (transform.position.x > bounds)
-            transform.position = new Vector3(bounds,0, transform.position.z);
-        else if (transform.position.x < -bounds)
-            transform.position = new Vector3(-bounds, 0, transform.position.z);
-        else if (transform.position.z > bounds)
-            transform.position = new Vector3(transform.position.x, 0, bounds);
-        else if (transform.position.z < -bounds)
-            transform.position = new Vector3(transform.position.x, 0, -bounds);
-
-        h_input = Input.GetAxis("Horizontal");
-        v_input = Input.GetAxis("Vertical");
-
-        transform.Translate(new Vector3(h_input, 0, v_input) * speed * Time.deltaTime);
+        if (collision.gameObject.CompareTag(enemyTag))
+        {
+            _manager.UpdateScore(-20);
+            _manager.SpawnNewObject(GameManager.ObjectType.Enemy);
+        }
+        else if (collision.gameObject.CompareTag(collectibleTag))
+        {
+            _manager.UpdateScore(10);
+            _manager.SpawnNewObject(GameManager.ObjectType.Collectible);
+            Destroy(collision.gameObject);
+        }
     }
 }
