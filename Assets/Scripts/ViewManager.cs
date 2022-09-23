@@ -15,7 +15,6 @@ public class ViewManager : MonoBehaviour
     public TextMeshProUGUI LevelText;
     private GameManager _manager;
     private bool _firstTry;
-    private int _level;
     [SerializeField] private string startText = "Cylinder Game";
     [SerializeField] private string gameOverText = "Game Over";
     
@@ -51,9 +50,8 @@ public class ViewManager : MonoBehaviour
         }
         else
         {
-            _level = 1;
             ScoreText.text = "Score: " + _manager.score;
-            LevelText.text = "Level " + _level;
+            LevelText.text = "Level " + _manager.level;
         }
     }
 

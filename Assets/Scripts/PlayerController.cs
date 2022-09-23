@@ -44,7 +44,6 @@ public class PlayerController : MonoBehaviour
         if (collision.gameObject.CompareTag(enemyTag))
         {
             _manager.UpdateScore(-20);
-            _manager.SpawnNewObject(GameManager.ObjectType.Enemy);
         }
         else if (collision.gameObject.CompareTag(collectibleTag))
         {
