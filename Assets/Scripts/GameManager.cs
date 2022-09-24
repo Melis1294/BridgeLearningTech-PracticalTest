@@ -6,6 +6,7 @@ using Random = UnityEngine.Random;
 
 public class GameManager : MonoBehaviour
 {
+    public static GameManager Instance { get; private set; }
     public float bounds;
     public bool gameOver;
     public int score;
@@ -18,19 +19,15 @@ public class GameManager : MonoBehaviour
     }
     
     private ViewManager _viewManager;
+    [SerializeField] private int maxLevel = 4;
     private const float MinSeconds = 4;
     private const float MaxSeconds = 12;
     [SerializeField] private float maxScorePerLevel = 100;
 
-    public static GameManager Instance { get; private set; }
-
-    // Start is called before the first frame update
     private void Awake()
     {
         Instance = this;
-        gameOver = true;
         score = 0;
-        level = 1;
         var square = GameObject.Find("Playground").gameObject;
         // adaptive value if square scale is changed during testing
         bounds = square.GetComponent<Transform>().localScale.x * 10 / 2;
@@ -39,6 +36,24 @@ public class GameManager : MonoBehaviour
     private void Start()
     {
         _viewManager = ViewManager.Instance;
+        var newLevel = PlayerPrefs.GetInt("Level");
+        if (newLevel > 1)
+        {
+            gameOver = false;
+            level = newLevel;
+            Play();
+        }
+        else
+        {
+            gameOver = true;
+            level = 1;
+            StartCoroutine(_viewManager.ShowScreen(ViewManager.ScreenType.Start, 0));
+        }
+    }
+
+    public int GetMaxLevel()
+    {
+        return maxLevel;
     }
 
     public void UpdateScore(int newScore)
@@ -53,27 +68,47 @@ public class GameManager : MonoBehaviour
         if (score >= maxScorePerLevel)
         {
             gameOver = true;
-            Debug.Log("You win!!");
+            PlayerWins();
         }
         else if (score < 0)
         {
-            Debug.Log("You lose!!");
             gameOver = true;
+            PlayerLoses();
         }
+    }
+    
+    private void PlayerWins()
+    {
+        level++;
+        if (level > maxLevel)
+        {
+            StartCoroutine(_viewManager.ShowScreen(ViewManager.ScreenType.Finish, null));
+        }
+        else
+        {
+            PlayerPrefs.SetInt("Level", level);
+            StartCoroutine(_viewManager.ShowScreen(ViewManager.ScreenType.Win, null));
+        }
+    }
+
+    private void PlayerLoses()
+    {
+        StartCoroutine(_viewManager.ShowScreen(ViewManager.ScreenType.Lose, null));
     }
 
     public void Play()
     {
-        gameOver = false;
+        score = 0;
+        _viewManager.RefreshUI();
+        if (gameOver) return;
         SpawnNewObject(ObjectType.Collectible);
         StartCoroutine(ManageEnemySpawn());
     }
-    
+
     private IEnumerator ManageEnemySpawn() {
         while(!gameOver) {
+            yield return new WaitForSeconds(Random.Range(MinSeconds / level, MaxSeconds / level));
             SpawnNewObject(ObjectType.Enemy);
-            var seconds = Random.Range(MinSeconds / level, MaxSeconds / level);
-            yield return new WaitForSeconds(seconds);
         }
     }
     
@@ -82,5 +117,10 @@ public class GameManager : MonoBehaviour
         var x = Random.Range(-bounds, bounds);
         var z = Random.Range(-bounds, bounds);
         Instantiate(objects[(int)obj], new Vector3(x, 0, z), objects[(int)obj].transform.rotation);
+    }
+
+    private void OnApplicationQuit()
+    {
+        PlayerPrefs.DeleteKey("Level");
     }
 }

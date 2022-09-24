@@ -9,6 +9,7 @@ public class PlayerController : MonoBehaviour
     private float _vInput;
     private float _bounds;
     private GameManager _manager;
+    private Rigidbody _rigidbody;
     [SerializeField] private float speed = 5.0f;
     [SerializeField] private string enemyTag = "Enemy";
     [SerializeField] private string collectibleTag = "Collectible";
@@ -17,12 +18,18 @@ public class PlayerController : MonoBehaviour
     {
         _manager = GameManager.Instance;
         _bounds = _manager.bounds;
+        _rigidbody = GetComponent<Rigidbody>();
     }
     
     private void Update()
     {
-        if (_manager.gameOver) return;
-        
+        if (_manager.gameOver)
+        {
+            if (!_rigidbody.isKinematic) _rigidbody.isKinematic = true;
+            return;
+        }
+
+        _rigidbody.isKinematic = false;
         // Manager player movement bounds
         if (transform.position.x > _bounds)
             transform.position = new Vector3(_bounds,0, transform.position.z);
