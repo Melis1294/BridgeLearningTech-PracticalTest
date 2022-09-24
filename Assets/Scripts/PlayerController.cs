@@ -1,6 +1,3 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class PlayerController : MonoBehaviour
@@ -25,11 +22,14 @@ public class PlayerController : MonoBehaviour
     {
         if (_manager.gameOver)
         {
-            if (!_rigidbody.isKinematic) _rigidbody.isKinematic = true;
+            _rigidbody.isKinematic = true;
             return;
         }
 
         _rigidbody.isKinematic = false;
+        // Count time
+        _manager.time += Time.deltaTime;
+        
         // Manager player movement bounds
         if (transform.position.x > _bounds)
             transform.position = new Vector3(_bounds,0, transform.position.z);
@@ -54,6 +54,7 @@ public class PlayerController : MonoBehaviour
         }
         else if (collision.gameObject.CompareTag(collectibleTag))
         {
+            _manager.pushedObjects++;
             _manager.UpdateScore(10);
             _manager.SpawnNewObject(GameManager.ObjectType.Collectible);
             Destroy(collision.gameObject);

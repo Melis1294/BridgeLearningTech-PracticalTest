@@ -1,10 +1,7 @@
 using System;
 using System.Collections;
-using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
-using UnityEngine.SceneManagement;
-using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 public class ViewManager : MonoBehaviour
@@ -18,13 +15,10 @@ public class ViewManager : MonoBehaviour
     public TextMeshProUGUI levelText;
     public enum ScreenType
     {
-        Start,
         Win,
-        Lose,
-        Finish
+        Lose
     }
     private GameManager _manager;
-    private string title = "Game Over";
     [SerializeField] private float screenDuration = 3.0f;
     
     public static ViewManager Instance { get; private set; }
@@ -33,72 +27,45 @@ public class ViewManager : MonoBehaviour
     private void Start()
     {
         _manager = GameManager.Instance;
+        startButton.onClick.AddListener(StartOrRetry);
     }
 
     public void RefreshUI()
     {
-        startButton.onClick.RemoveAllListeners();
-        startButton.onClick.AddListener(StartOrRetry);
         _manager ??= GameManager.Instance;
         startScreen.SetActive(_manager.gameOver);
         gameScreen.SetActive(!_manager.gameOver);
-        if (_manager.gameOver)
-        {
-            titleText.text = title;
-        }
-        else
-        {
-            scoreText.text = "Score: " + _manager.score;
-            levelText.text = "Level " + _manager.level;
-        }
     }
 
-    public void UpdateScore()
+    private void StartOrRetry()
+    {
+        _manager.StartOrRetry();
+    }
+
+    public void UpdateLevelScore()
     {
         scoreText.text = "Score: " + _manager.score;
+        levelText.text = "Level: " + _manager.level;
     }
 
-    public IEnumerator ShowScreen(ScreenType screen, float? duration)
+    public IEnumerator ShowScreen(ScreenType screen)
     {
-        yield return new WaitForSeconds(duration ?? screenDuration);
+        if (_manager.gameOver) yield return new WaitForSeconds(screenDuration);
+        else yield return new WaitForSeconds(0);
         switch (screen)
         {
             // First try
-            case ScreenType.Start:
-                title = "Cylinder Game";
-                buttonText.text = "Play";
-                break;
-            case ScreenType.Win:
-                title = "Level Complete";
-                buttonText.text = "Continue";
-                break;
             case ScreenType.Lose:
-                title = "Game Over";
+                titleText.text = "Game Over";
                 buttonText.text = "Retry";
                 break;
-            case ScreenType.Finish:
-                title = "Game finished";
+            case ScreenType.Win:
+                titleText.text = "Winner";
                 buttonText.text = "Replay";
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(screen), screen, null);
         }
         RefreshUI();
-    }
-    
-    private void StartOrRetry()
-    {
-        // Case win level
-        if (_manager.level > 1) SceneManager.LoadScene(SceneManager.GetActiveScene().name);
-        // Case win last level
-        if (_manager.level > _manager.GetMaxLevel() || _manager.score < 0)
-        {
-            _manager.level = 1;
-            PlayerPrefs.SetInt("Level", _manager.level);
-            SceneManager.LoadScene(SceneManager.GetActiveScene().name);
-        }
-        // Case start first level
-        _manager.gameOver = false;
-        _manager.Play();
     }
 }
