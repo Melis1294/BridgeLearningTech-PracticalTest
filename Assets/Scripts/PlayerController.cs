@@ -9,8 +9,7 @@ public class PlayerController : MonoBehaviour
     private Rigidbody _rigidbody;
     [SerializeField] private float speed = 5.0f;
     [SerializeField] private string enemyTag = "Enemy";
-    [SerializeField] private string collectibleTag = "Collectible";
-
+    
     private void Start()
     {
         _manager = GameManager.Instance;
@@ -31,13 +30,14 @@ public class PlayerController : MonoBehaviour
         _manager.time += Time.deltaTime;
         
         // Manager player movement bounds
-        if (transform.position.x > _bounds)
+        var position = transform.position;
+        if (position.x > _bounds)
             transform.position = new Vector3(_bounds,0, transform.position.z);
-        else if (transform.position.x < -_bounds)
+        else if (position.x < -_bounds)
             transform.position = new Vector3(-_bounds, 0, transform.position.z);
-        else if (transform.position.z > _bounds)
+        else if (position.z > _bounds)
             transform.position = new Vector3(transform.position.x, 0, _bounds);
-        else if (transform.position.z < -_bounds)
+        else if (position.z < -_bounds)
             transform.position = new Vector3(transform.position.x, 0, -_bounds);
 
         _hInput = Input.GetAxis("Horizontal");
@@ -50,14 +50,7 @@ public class PlayerController : MonoBehaviour
     {
         if (collision.gameObject.CompareTag(enemyTag))
         {
-            _manager.UpdateScore(-20);
-        }
-        else if (collision.gameObject.CompareTag(collectibleTag))
-        {
-            _manager.pushedObjects++;
-            _manager.UpdateScore(10);
-            _manager.SpawnNewObject(GameManager.ObjectType.Collectible);
-            Destroy(collision.gameObject);
+            _manager.UpdateScore(-20, null);
         }
     }
 }

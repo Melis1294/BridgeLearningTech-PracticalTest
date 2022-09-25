@@ -1,43 +1,52 @@
 using System;
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using Random = UnityEngine.Random;
 using UnityEngine.SceneManagement;
 using System.IO;
+using Newtonsoft.Json;
 
 public class GameManager : MonoBehaviour
 {
+    [Serializable]
     public class LevelStat
     {
-        public int LevelNr;
-        public float Time;
+        public int Level;
+        public double Time;
         public int Score;
-        public int ObjectsPushed;
+        public int Spheres;
+        public int Capsules;
 
-        public LevelStat(float newTime, int newScore, int newLevel, int objects)
+        public LevelStat(float newTime, int newScore, int newLevel, int spheres, int capsules)
         {
-            LevelNr = newLevel;
-            Time = newTime;
+            Level = newLevel;
+            Time = Math.Round(newTime, 2);
             Score = newScore;
-            ObjectsPushed = objects;
+            Spheres = spheres;
+            Capsules = capsules;
         }
     }
+    [Serializable]
+    public class LevelStats
+    {
+        public LevelStat[] level;
+    }
+
     public static GameManager Instance { get; private set; }
     public float bounds;
     public bool gameOver;
     public float time;
-    public int pushedObjects;
+    public int spheres, capsules;
     public int score;
     public int level;
     public GameObject[] objects;
+    public LevelStats levelStats = new LevelStats();
     public enum ObjectType
     {
         Enemy,
-        Collectible
+        Sphere,
+        Capsule
     }
-
-    private List<LevelStat> _levelStats;
     private ViewManager _viewManager;
     [SerializeField] private int maxLevel = 4;
     private const float MinSeconds = 4;
@@ -47,12 +56,13 @@ public class GameManager : MonoBehaviour
     private void Awake()
     {
         Instance = this;
-        time = 0;
         level = 1;
+        time = 0;
         score = 0;
-        pushedObjects = 0;
+        spheres = 0;
+        capsules = 0;
         gameOver = true;
-        _levelStats = new List<LevelStat>();
+        levelStats.level = new LevelStat[maxLevel];
         var square = GameObject.Find("Playground").gameObject;
         // adaptive value if square scale is changed during testing
         bounds = square.GetComponent<Transform>().localScale.x * 10 / 2;
@@ -63,8 +73,26 @@ public class GameManager : MonoBehaviour
         _viewManager = ViewManager.Instance;
     }
 
-    public void UpdateScore(int newScore)
+    public void UpdateScore(int newScore, ObjectType? obj)
     {
+        switch (obj)
+        {
+            case ObjectType.Sphere:
+                spheres++;
+                break;
+            case ObjectType.Capsule:
+                capsules++;
+                break;
+            case ObjectType.Enemy:
+                break;
+            case null:
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(obj), obj, null);
+        }
+        
+        if (newScore > 0)
+            SpawnNewObject(GetRandomCollectible());
         score += newScore;
         CheckScore();
         _viewManager.UpdateLevelScore();
@@ -73,13 +101,9 @@ public class GameManager : MonoBehaviour
     private void CheckScore()
     {
         if (score >= maxScorePerLevel * level)
-        {
             PlayerWins();
-        }
         else if (score < 0)
-        {
             PlayerLoses();
-        }
     }
     
     private void PlayerWins()
@@ -87,24 +111,33 @@ public class GameManager : MonoBehaviour
         RefreshData();
         level++;
         if (level <= maxLevel) return;
-        gameOver = true;
-        StartCoroutine(_viewManager.ShowScreen(ViewManager.ScreenType.Win));
+        EndGame(ViewManager.ScreenType.Win);
     }
 
     private void PlayerLoses()
     {
-        gameOver = true;
         RefreshData();
-        StartCoroutine(_viewManager.ShowScreen(ViewManager.ScreenType.Lose));
+        EndGame(ViewManager.ScreenType.Lose);
+    }
+
+    private void EndGame(ViewManager.ScreenType screen)
+    {
+        gameOver = true;
         SaveData();
+        StartCoroutine(_viewManager.ShowScreen(screen));
     }
 
     private void Play()
     {
         _viewManager.RefreshUI();
         if (gameOver) return;
-        SpawnNewObject(ObjectType.Collectible);
+        SpawnNewObject(GetRandomCollectible());
         StartCoroutine(ManageEnemySpawn());
+    }
+
+    private static ObjectType GetRandomCollectible()
+    {
+        return Random.Range(0, 2) == 0 ? ObjectType.Sphere : ObjectType.Capsule;
     }
 
     private IEnumerator ManageEnemySpawn() {
@@ -114,11 +147,12 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    public void SpawnNewObject(ObjectType obj)
+    private void SpawnNewObject(ObjectType obj)
     {
         var x = Random.Range(-bounds, bounds);
         var z = Random.Range(-bounds, bounds);
-        Instantiate(objects[(int)obj], new Vector3(x, 0, z), objects[(int)obj].transform.rotation);
+        var index = (int)obj;
+        Instantiate(objects[index], new Vector3(x, 0, z), objects[index].transform.rotation);
     }
 
     public void StartOrRetry()
@@ -128,30 +162,20 @@ public class GameManager : MonoBehaviour
         {
             SceneManager.LoadScene(SceneManager.GetActiveScene().name);
         }
-        // Case start first level
+        // Case start game
         gameOver = false;
         Play();
     }
     
     private void RefreshData()
     {
-        var levelData = new LevelStat(time, score, level, pushedObjects);
-        Debug.Log(levelData.ObjectsPushed);
-        _levelStats.Add(levelData);
+        var levelData = new LevelStat(time, score, level, spheres, capsules);
+        levelStats.level[level - 1] = levelData;
     }
 
     private void SaveData()
     {
-        Debug.Log("Saving data");
-        var gameData = _levelStats.ToArray();
-        foreach (var datum in gameData)
-        {
-            Debug.Log(datum.Score);
-            Debug.Log(datum.Time);
-            Debug.Log(datum.ObjectsPushed);
-        }
-        var strOutput = JsonUtility.ToJson(gameData);
-        
-        File.WriteAllText(Application.dataPath + "/Resources/levelStats.json", strOutput);
+        var jsonOutput = JsonConvert.SerializeObject(levelStats.level, Formatting.Indented);
+        File.WriteAllText(Application.dataPath + "/Resources/levelStats.json", jsonOutput);
     }
 }

@@ -1,6 +1,3 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class EnemyScript : MonoBehaviour
@@ -9,6 +6,8 @@ public class EnemyScript : MonoBehaviour
     private GameObject _target;
     private GameManager _manager;
     private Rigidbody _rigidbody;
+    private float _bounds;
+    [SerializeField] private float delta = 10.0f;
     [SerializeField] private float enemySpeed = 4.0f;
     [SerializeField] private float rotationSpeed = 2.0f;
 
@@ -17,6 +16,7 @@ public class EnemyScript : MonoBehaviour
         _target = GameObject.FindGameObjectWithTag(playerTag);
         _manager = GameManager.Instance;
         _rigidbody = GetComponent<Rigidbody>();
+        _bounds = _manager.bounds;
     }
 
     private void Update()
@@ -27,10 +27,15 @@ public class EnemyScript : MonoBehaviour
             return;
         }
         
+        // Destroy enemies out of bounds
+        if (transform.position.x > _bounds + delta || transform.position.x < -_bounds - delta || 
+            transform.position.z > _bounds + delta || transform.position.z < -_bounds - delta)
+            Destroy(gameObject);
+
         var enemyPosition = transform.position;
         var enemyRotation = transform.rotation;
-        var position = _target.transform.position;
-        var targetSpot = new Vector3(position.x, 0, position.z);
+        var targetPosition = _target.transform.position;
+        var targetSpot = new Vector3(targetPosition.x, 0, targetPosition.z);
         transform.rotation = Quaternion.Slerp(enemyRotation, Quaternion.LookRotation(targetSpot - enemyPosition), rotationSpeed * Time.deltaTime);
 
         //move towards the player

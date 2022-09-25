@@ -32,7 +32,6 @@ public class ViewManager : MonoBehaviour
 
     public void RefreshUI()
     {
-        _manager ??= GameManager.Instance;
         startScreen.SetActive(_manager.gameOver);
         gameScreen.SetActive(!_manager.gameOver);
     }
@@ -50,8 +49,7 @@ public class ViewManager : MonoBehaviour
 
     public IEnumerator ShowScreen(ScreenType screen)
     {
-        if (_manager.gameOver) yield return new WaitForSeconds(screenDuration);
-        else yield return new WaitForSeconds(0);
+        yield return new WaitForSeconds(screenDuration);
         switch (screen)
         {
             // First try

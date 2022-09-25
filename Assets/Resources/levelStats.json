@@ -1,1 +1,30 @@
-{}
+[
+  {
+    "Level": 1,
+    "Time": 11.78,
+    "Score": 100,
+    "Spheres": 4,
+    "Capsules": 4
+  },
+  {
+    "Level": 2,
+    "Time": 30.83,
+    "Score": 205,
+    "Spheres": 7,
+    "Capsules": 9
+  },
+  {
+    "Level": 3,
+    "Time": 53.24,
+    "Score": 305,
+    "Spheres": 11,
+    "Capsules": 13
+  },
+  {
+    "Level": 4,
+    "Time": 91.77,
+    "Score": -15,
+    "Spheres": 20,
+    "Capsules": 19
+  }
+]
